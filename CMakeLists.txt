@@ -10,7 +10,25 @@ message(${CMAKE_CURRENT_SOURCE_DIR})
 set(CMAKE_BUILD_RPATH "${CMAKE_CURRENT_SOURCE_DIR}/build")
 
 find_package(GMP REQUIRED)
+if(GMP_FOUND AND GMP_INCLUDE_DIR)
+    include_directories(${GMP_INCLUDE_DIR})
+endif()
+
 find_package(GMPXX REQUIRED)
+if(GMPXX_FOUND AND GMPXX_INCLUDE_DIR)
+    include_directories(${GMPXX_INCLUDE_DIR})
+endif()
+
+find_package(MPFR REQUIRED)
+if(MPFR_FOUND AND MPFR_INCLUDE_DIR)
+    include_directories(${MPFR_INCLUDE_DIR})
+endif()
+
+find_package(Boost REQUIRED)
+message(STATUS "Boost version: ${Boost_VERSION}")
+if(Boost_FOUND AND Boost_INCLUDE_DIR)
+    include_directories(${Boost_INCLUDE_DIR})
+endif()
 
 add_executable(cardy)
 target_sources(cardy
@@ -19,5 +37,7 @@ target_sources(cardy
 target_link_libraries(cardy 
                         PRIVATE
                         ${GMP_LIBRARIES}
-                        ${GMPXX_LIBRARIES})
+                        ${GMPXX_LIBRARIES}
+                        ${MPFR_LIBRARIES}
+                        ${Boost_LIBRARIES})
 install(TARGETS cardy RUNTIME)
