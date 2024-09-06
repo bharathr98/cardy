@@ -9,6 +9,8 @@ message(${CMAKE_CURRENT_SOURCE_DIR})
 
 set(CMAKE_BUILD_RPATH "${CMAKE_CURRENT_SOURCE_DIR}/build")
 
+add_compile_options(-lgmp)
+
 find_package(GMP REQUIRED)
 if(GMP_FOUND AND GMP_INCLUDE_DIR)
     include_directories(${GMP_INCLUDE_DIR})
