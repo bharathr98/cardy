@@ -141,13 +141,13 @@ int main(int argc, char **argv){
     float beta = 3.14;
 
     // Create a 3D array that is maxTime x numWalkers x dim
-    int maxTime = 1'000'000;
+    int maxTime = 10;
     int numWalkers = 10;
-    int dim = 100;
+    int dim = 3;
 
     std::ofstream outputFile;
     outputFile.open(argv[2]);
-    outputFile<<"step_size = "<<step_size<<"\n data = [";
+    // outputFile<<"step_size = "<<step_size<<"\n data = [";
 
     typedef boost::multi_array<mpf_class, 2> array_type; // 2 here is the depth.
     boost::array<array_type::index, 2> shape = {{ numWalkers, dim }}; // 3 here seems to do nothing as long as it is greater than depth. 
@@ -175,8 +175,8 @@ int main(int argc, char **argv){
             mpf_class ratioPotential = wigner(nextStep)/wigner(prev[i]);
             mpf_class decisionToss = rand.get_f();
 
-            // if(i == 0){
-            if (i == 0 && time % (maxTime/500) == 0){
+            if(i == 0){
+            // if (i == 0 && time % (maxTime/500) == 0){
                 std::cout<<"ratioPotential at time = "<<time<<" is = "<<ratioPotential<<std::endl;
             }
 
@@ -187,20 +187,20 @@ int main(int argc, char **argv){
                 prev[i] = nextStep;
             }
         }
-        outputFile<<"[";
+        // outputFile<<"[";
         for(int id = 0; id < numWalkers; id++){
-            outputFile<<"[";
+            // outputFile<<"[";
             for(int d = 0; d < dim; d++){
-                outputFile<<prev[id][d]<<",";
+                outputFile<<prev[id][d]<<"\n";
             }
-            outputFile.seekp(-1, std::ios_base::cur);
-            outputFile<<"],";
+            // outputFile.seekp(-1, std::ios_base::cur);
+            // outputFile<<"],";
         }
-        outputFile.seekp(-1, std::ios_base::cur);
-        outputFile<<"],";
+        // outputFile.seekp(-1, std::ios_base::cur);
+        // outputFile<<"],";
     }
-    outputFile.seekp(-1, std::ios_base::cur);
-    outputFile<<"]";
+    // outputFile.seekp(-1, std::ios_base::cur);
+    // outputFile<<"]";
 
     std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
     std::cout << "Time elapsed = " << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() << "[µs]" << std::endl;
