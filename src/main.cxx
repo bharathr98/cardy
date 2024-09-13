@@ -26,47 +26,52 @@ mpf_class vanderMonde(boost::multi_array<mpf_class, 1> evals){
 }
 
 mpf_class expV(float ccharge, float beta, boost::multi_array<mpf_class, 1> evals){
-    mpfr_t ccharger, betar, betapr;
+    mpfr_t ccharger, betar, betapr, zero;
     mpfr_init(ccharger);
     mpfr_set_flt(ccharger, ccharge, MPFR_RNDN);
     mpfr_init(betar);
     mpfr_set_flt(betar, beta, MPFR_RNDN);
     mpfr_init(betapr);
     mpfr_set_flt(betapr, 4*M_PI*M_PI/beta, MPFR_RNDN);
+    mpfr_init(zero);
+    mpfr_set_str(zero, "0", 10, MPFR_RNDN);
     
     // This implements Z = sum(exp(lambda beta)) and Zt = sum(exp(lambda beta,))
     mpfr_t Z;
-    mpfr_init_set_str(Z, "0", 10, MPFR_RNDN); // Initialise Z to 0 in base 10
+    mpfr_init_set_str(Z, "1", 10, MPFR_RNDN); // Initialise Z to 0 in base 10
     mpfr_t temp;
     mpfr_init(temp);
 
     mpfr_t Zt;
-    mpfr_init_set_str(Zt, "0", 10, MPFR_RNDN); // Initialise Z to 0 in base 10
+    mpfr_init_set_str(Zt, "1", 10, MPFR_RNDN); // Initialise Z to 0 in base 10
     mpfr_t tempt;
     mpfr_init(tempt);
 
     for (auto x: evals){
         mpfr_set_f(temp, x.get_mpf_t(), MPFR_RNDN);
+        mpfr_sub(temp, zero, temp, MPFR_RNDN);
         mpfr_mul(temp, temp, betar, MPFR_RNDN);
         mpfr_exp(temp, temp, MPFR_RNDN);
         mpfr_add(Z, Z, temp, MPFR_RNDN);
 
         mpfr_set_f(tempt, x.get_mpf_t(), MPFR_RNDN);
+        mpfr_sub(tempt, zero, tempt, MPFR_RNDN);
         mpfr_mul(tempt, tempt, betapr, MPFR_RNDN);
         mpfr_exp(tempt, tempt, MPFR_RNDN);
         mpfr_add(Zt, Zt, tempt, MPFR_RNDN);
     }
-    mpfr_printf ("Z is %.60Rf\n", Z);
-    mpfr_printf ("Zt is %.60Rf\n", Zt);
+    // mpfr_printf ("Z is %.60Rf\n", Z);
+    // mpfr_printf ("Zt is %.60Rf\n", Zt);
     // mpfr_clears(temp,tempt);
     
 
     // This implements exp(Z - Zt)
-    // mpfr_t potential;
-    // mpfr_init(potential);
-    // mpfr_set(potential, Z, MPFR_RNDN);
-    // mpfr_sub(potential, potential, Zt, MPFR_RNDN);
-    // mpfr_exp(potential, potential, MPFR_RNDN);
+    mpfr_t potential;
+    mpfr_init(potential);
+    mpfr_set(potential, Z, MPFR_RNDN);
+    mpfr_sub(potential, potential, Zt, MPFR_RNDN);
+    // mpfr_mul(potential, potential, potential, MPFR_RNDN);
+    mpfr_exp(potential, potential, MPFR_RNDN);
     // mpfr_printf ("potential is %.60Rf\n", potential);
 
 
@@ -102,6 +107,9 @@ mpf_class wigner(boost::multi_array<mpf_class, 1> evals){
     return vanderMonde(evals) * gaussian(evals);
 }
 
+mpf_class cardy(float ccharge, float beta, boost::multi_array<mpf_class, 1> evals){
+    return vanderMonde(evals) * expV(ccharge, beta, evals);
+}
 
 unsigned long long int read_urandom()
 {
@@ -117,7 +125,7 @@ unsigned long long int read_urandom()
 	return u.value;
 }
 
-int main(){
+int main(int argc, char **argv){
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
     mpf_set_default_prec(PREC);
     mpfr_set_default_prec(PREC);
@@ -125,23 +133,31 @@ int main(){
     gmp_randclass rand (gmp_randinit_default);
 
     mpf_class low, high, step_size;
-    low = -5;
-    high = 5;
-    step_size = 0.1;
+    low = -1;
+    high = 1;
+    step_size = argv[1];
+
+    float ccharge = 1.5;
+    float beta = 3.14;
 
     // Create a 3D array that is maxTime x numWalkers x dim
-    int maxTime = 100000;
-    int numWalkers = 5;
-    int dim = 50;
-    typedef boost::multi_array<mpf_class, 3> array_type; // 3 here is the depth.
-    boost::array<array_type::index, 3> shape = {{ maxTime, numWalkers, dim }}; // 3 here seems to do nothing as long as it is greater than depth. 
-    array_type data(shape);
+    int maxTime = 1'000'000;
+    int numWalkers = 10;
+    int dim = 100;
+
+    std::ofstream outputFile;
+    outputFile.open(argv[2]);
+    outputFile<<"step_size = "<<step_size<<"\n data = [";
+
+    typedef boost::multi_array<mpf_class, 2> array_type; // 2 here is the depth.
+    boost::array<array_type::index, 2> shape = {{ numWalkers, dim }}; // 3 here seems to do nothing as long as it is greater than depth. 
+    array_type prev(shape);
     
     // Randomly initialise the first time step
     for(int i = 0; i < numWalkers; i++){
         for(int j = 0; j < dim; j++){
             rand.seed(read_urandom());
-            data[0][i][j] = (high - low)*rand.get_f() + low;
+            prev[i][j] = (high - low)*rand.get_f() + low;
         }
     }
 
@@ -152,51 +168,30 @@ int main(){
     for(int time = 1; time < maxTime; time++){
         for(int i = 0; i < numWalkers; i++){
             for(int d = 0; d < dim; d++){
-                nextStep[d] = data[time-1][i][d] + (2*step_size)*rand.get_f() - step_size;
+                // nextStep[d] = abs(prev[i][d] + (2*step_size)*rand.get_f() - step_size);
+                nextStep[d] = prev[i][d] + (2*step_size)*rand.get_f() - step_size;
             }
-            mpf_class ratioPotential = wigner(nextStep)/wigner(data[time-1][i]);
+            // mpf_class ratioPotential = cardy(ccharge, beta, nextStep)/cardy(ccharge, beta, prev[i]);
+            mpf_class ratioPotential = wigner(nextStep)/wigner(prev[i]);
             mpf_class decisionToss = rand.get_f();
 
-            if (i == 0 && time % 500 == 0){
+            // if(i == 0){
+            if (i == 0 && time % (maxTime/500) == 0){
                 std::cout<<"ratioPotential at time = "<<time<<" is = "<<ratioPotential<<std::endl;
             }
 
             if (decisionToss > ratioPotential){
-                    data[time][i] = data[time - 1][i];
+                    continue;
             }
             else{
-                data[time][i] = nextStep;
+                prev[i] = nextStep;
             }
         }
-    }
-
-    if(dim == 1){
-        for(int i = 0; i < numWalkers; i++){
-            std::cout<<"ID "<<i;
-            mpf_class sum = 0;
-            for(int time = 0; time < maxTime; time++){
-                sum += data[time][i][0];
-            }
-            sum = sum / maxTime;
-            std::cout<<" mean = "<<sum;
-            mpf_class squareExpectation = 0;
-            for(int time = 0; time < maxTime; time++){
-                squareExpectation += (data[time][i][0] * data[time][i][0]) / maxTime;
-            }
-            squareExpectation -= (sum*sum);
-            std::cout<<", var = "<<squareExpectation<<std::endl;
-        }
-    }
-
-    std::ofstream outputFile;
-    outputFile.open("/home/users/r/radhakrb/cardy/data/out.py");
-    outputFile<<"data = [";
-    for(int time = 0; time < maxTime; time++){
         outputFile<<"[";
         for(int id = 0; id < numWalkers; id++){
             outputFile<<"[";
             for(int d = 0; d < dim; d++){
-                outputFile<<data[time][id][d]<<",";
+                outputFile<<prev[id][d]<<",";
             }
             outputFile.seekp(-1, std::ios_base::cur);
             outputFile<<"],";
@@ -206,8 +201,6 @@ int main(){
     }
     outputFile.seekp(-1, std::ios_base::cur);
     outputFile<<"]";
-
-
 
     std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
     std::cout << "Time elapsed = " << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() << "[µs]" << std::endl;
