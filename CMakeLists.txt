@@ -42,4 +42,15 @@ target_link_libraries(cardy
                         ${GMPXX_LIBRARIES}
                         ${MPFR_LIBRARIES}
                         ${Boost_LIBRARIES})
-install(TARGETS cardy RUNTIME)
+
+add_executable(plotting)
+target_sources(plotting
+                PRIVATE
+                src/plotting/plotting.cxx)
+
+add_executable(findBounds)
+target_sources(findBounds
+                PRIVATE
+                src/plotting/findBounds.cxx)
+
+install(TARGETS cardy plotting findBounds RUNTIME)
