@@ -49,6 +49,9 @@ mpf_class expV(float ccharge, float beta, boost::multi_array<mpf_class, 1> evals
     mpfr_t tempt;
     mpfr_init(tempt);
 
+    mpfr_t dim; // TODO - CHECK that N appears in front of Z-Zt
+    mpfr_init_set_str(dim, "0", 10, MPFR_RNDN);    
+
     for (auto x: evals){
         mpfr_set_f(temp, x.get_mpf_t(), MPFR_RNDN);
         mpfr_sub(temp, zero, temp, MPFR_RNDN);
@@ -72,7 +75,7 @@ mpf_class expV(float ccharge, float beta, boost::multi_array<mpf_class, 1> evals
     mpfr_init(potential);
     mpfr_set(potential, Z, MPFR_RNDN);
     mpfr_sub(potential, potential, Zt, MPFR_RNDN);
-    // mpfr_mul(potential, potential, potential, MPFR_RNDN);
+    mpfr_mul(potential, potential, potential, MPFR_RNDN);
     mpfr_exp(potential, potential, MPFR_RNDN);
     // mpfr_printf ("potential is %.60Rf\n", potential);
 
@@ -93,8 +96,12 @@ mpf_class expV(float ccharge, float beta, boost::multi_array<mpf_class, 1> evals
     return mpf_class(returnValue);
 }
 
-mpf_class gaussian(boost::multi_array<mpf_class, 1> evals){
-    // This implements Z = exp(-sum(x**2)) and Zt = sum(exp(lambda beta,))
+mpf_class gaussian(float betaReg, boost::multi_array<mpf_class, 1> evals){
+    // This implements Z = exp(-betaReg * sum(x**2))
+    mpfr_t betaRegr;
+    mpfr_init(betaRegr);
+    mpfr_set_flt(betaRegr, betaReg, MPFR_RNDN);
+
     mpfr_t Z;
     mpfr_init_set_str(Z, "0", 10, MPFR_RNDN); // Initialise Z to 0 in base 10
     
@@ -106,6 +113,7 @@ mpf_class gaussian(boost::multi_array<mpf_class, 1> evals){
         mpfr_sub(Z, Z, temp, MPFR_RNDN); // Z - eval[i]**2
     }
     mpfr_clear(temp);
+    mpfr_mul(Z, betaRegr, Z, MPFR_RNDN);
     mpfr_exp(Z, Z, MPFR_RNDN); // Z <- exp(Z)
     
     mpf_t returnValue;
@@ -115,12 +123,12 @@ mpf_class gaussian(boost::multi_array<mpf_class, 1> evals){
     return mpf_class(returnValue);
 }
 
-mpf_class wigner(boost::multi_array<mpf_class, 1> evals){
-    return vanderMonde(evals) * gaussian(evals);
+mpf_class wigner(float betaReg, boost::multi_array<mpf_class, 1> evals){
+    return vanderMonde(evals) * gaussian(betaReg, evals);
 }
 
-mpf_class cardy(float ccharge, float beta, boost::multi_array<mpf_class, 1> evals){
-    return vanderMonde(evals) * expV(ccharge, beta, evals);
+mpf_class cardy(float ccharge, float beta, float betaReg, boost::multi_array<mpf_class, 1> evals){
+    return vanderMonde(evals) * expV(ccharge, beta, evals) * gaussian(betaReg, evals);
 }
 
 unsigned long long int read_urandom()
@@ -141,19 +149,19 @@ int main(int argc, char **argv){
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
     mpf_set_default_prec(PREC);
     mpfr_set_default_prec(PREC);
-    std::cout<<"Precision is: "<<mpfr_get_default_prec()<<std::endl;
     gmp_randclass rand (gmp_randinit_default);
 
     std::string dir = argv[2];
     std::filesystem::create_directory(dir);
 
     mpf_class low, high, step_size;
-    low = -1;
-    high = 1;
+    low = 50;
+    high = 100;
     step_size = argv[1];
 
     float ccharge = 1.5;
-    float beta = 3.14;
+    float beta = 0.5;
+    float betaReg = 0.0001;
 
     // Create a 3D array that is maxTime x numWalkers x dim
     int maxTime = 10;
@@ -198,10 +206,10 @@ int main(int argc, char **argv){
         for(int i = 0; i < numWalkers; i++){
             for(int d = 0; d < dim; d++){
                 // nextStep[d] = abs(prev[i][d] + (2*step_size)*rand.get_f() - step_size);
-                nextStep[d] = prev[i][d] + (2*step_size)*rand.get_f() - step_size;
+                nextStep[d] = abs(prev[i][d] + (2*step_size)*rand.get_f() - step_size);
             }
             // mpf_class ratioPotential = cardy(ccharge, beta, nextStep)/cardy(ccharge, beta, prev[i]);
-            mpf_class ratioPotential = wigner(nextStep)/wigner(prev[i]);
+            mpf_class ratioPotential = cardy(ccharge, beta, betaReg, nextStep)/cardy(ccharge, beta, betaReg, prev[i]);
             mpf_class decisionToss = rand.get_f();
 
             if(i == 0){
