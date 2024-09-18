@@ -8,6 +8,8 @@
 #include<mpfr.h>
 #include<chrono>
 #include"boost/multi_array.hpp"
+#include<string>
+#include<filesystem>
 
 
 #define PREC 500
@@ -38,14 +40,17 @@ mpf_class expV(float ccharge, float beta, boost::multi_array<mpf_class, 1> evals
     
     // This implements Z = sum(exp(lambda beta)) and Zt = sum(exp(lambda beta,))
     mpfr_t Z;
-    mpfr_init_set_str(Z, "1", 10, MPFR_RNDN); // Initialise Z to 0 in base 10
+    mpfr_init_set_str(Z, "1", 10, MPFR_RNDN); // Initialise Z to 1 in base 10
     mpfr_t temp;
     mpfr_init(temp);
 
     mpfr_t Zt;
-    mpfr_init_set_str(Zt, "1", 10, MPFR_RNDN); // Initialise Z to 0 in base 10
+    mpfr_init_set_str(Zt, "1", 10, MPFR_RNDN); // Initialise Zt to 1 in base 10
     mpfr_t tempt;
     mpfr_init(tempt);
+
+    mpfr_t dim; // TODO - CHECK that N appears in front of Z-Zt
+    mpfr_init_set_str(dim, "0", 10, MPFR_RNDN);    
 
     for (auto x: evals){
         mpfr_set_f(temp, x.get_mpf_t(), MPFR_RNDN);
@@ -65,24 +70,38 @@ mpf_class expV(float ccharge, float beta, boost::multi_array<mpf_class, 1> evals
     // mpfr_clears(temp,tempt);
     
 
-    // This implements exp(Z - Zt)
+    // This implements exp((Z - Zt)**2)
     mpfr_t potential;
     mpfr_init(potential);
     mpfr_set(potential, Z, MPFR_RNDN);
     mpfr_sub(potential, potential, Zt, MPFR_RNDN);
-    // mpfr_mul(potential, potential, potential, MPFR_RNDN);
+    mpfr_mul(potential, potential, potential, MPFR_RNDN);
     mpfr_exp(potential, potential, MPFR_RNDN);
     // mpfr_printf ("potential is %.60Rf\n", potential);
 
 
     mpf_t returnValue;
     mpf_init(returnValue);
-    mpfr_get_f(returnValue, Z, MPFR_RNDN); // Need to change to potential
+    mpfr_get_f(returnValue, potential, MPFR_RNDN);
+    
+    // TODO - Is there a better way to achieve the following? For some reason
+    // mpfr_clears() does not work and gives an error of undefined function
+    mpfr_clear(ccharger);
+    mpfr_clear(betar);
+    mpfr_clear(betapr);
+    mpfr_clear(zero);
+    mpfr_clear(Z);
+    mpfr_clear(Zt);
+    mpfr_clear(potential);
     return mpf_class(returnValue);
 }
 
-mpf_class gaussian(boost::multi_array<mpf_class, 1> evals){
-    // This implements Z = exp(-sum(x**2)) and Zt = sum(exp(lambda beta,))
+mpf_class gaussian(float betaReg, boost::multi_array<mpf_class, 1> evals){
+    // This implements Z = exp(-betaReg * sum(x**2))
+    mpfr_t betaRegr;
+    mpfr_init(betaRegr);
+    mpfr_set_flt(betaRegr, betaReg, MPFR_RNDN);
+
     mpfr_t Z;
     mpfr_init_set_str(Z, "0", 10, MPFR_RNDN); // Initialise Z to 0 in base 10
     
@@ -94,6 +113,7 @@ mpf_class gaussian(boost::multi_array<mpf_class, 1> evals){
         mpfr_sub(Z, Z, temp, MPFR_RNDN); // Z - eval[i]**2
     }
     mpfr_clear(temp);
+    mpfr_mul(Z, betaRegr, Z, MPFR_RNDN);
     mpfr_exp(Z, Z, MPFR_RNDN); // Z <- exp(Z)
     
     mpf_t returnValue;
@@ -103,12 +123,12 @@ mpf_class gaussian(boost::multi_array<mpf_class, 1> evals){
     return mpf_class(returnValue);
 }
 
-mpf_class wigner(boost::multi_array<mpf_class, 1> evals){
-    return vanderMonde(evals) * gaussian(evals);
+mpf_class wigner(float betaReg, boost::multi_array<mpf_class, 1> evals){
+    return vanderMonde(evals) * gaussian(betaReg, evals);
 }
 
-mpf_class cardy(float ccharge, float beta, boost::multi_array<mpf_class, 1> evals){
-    return vanderMonde(evals) * expV(ccharge, beta, evals);
+mpf_class cardy(float ccharge, float beta, float betaReg, boost::multi_array<mpf_class, 1> evals){
+    return vanderMonde(evals) * expV(ccharge, beta, evals) * gaussian(betaReg, evals);
 }
 
 unsigned long long int read_urandom()
@@ -129,25 +149,42 @@ int main(int argc, char **argv){
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
     mpf_set_default_prec(PREC);
     mpfr_set_default_prec(PREC);
-    std::cout<<"Precision is: "<<mpfr_get_default_prec()<<std::endl;
     gmp_randclass rand (gmp_randinit_default);
 
+    std::string dir = argv[2];
+    std::filesystem::create_directory(dir);
+
     mpf_class low, high, step_size;
-    low = -1;
-    high = 1;
+    low = 50;
+    high = 100;
     step_size = argv[1];
 
     float ccharge = 1.5;
-    float beta = 3.14;
+    float beta = 0.5;
+    float betaReg = 0.0001;
 
     // Create a 3D array that is maxTime x numWalkers x dim
-    int maxTime = 1'000'000;
+    int maxTime = 700'000;
     int numWalkers = 10;
     int dim = 100;
 
+    std::ofstream parametersFile;
+    parametersFile.open(dir + "/parameters.txt");
+
+    parametersFile<<"Precision = "<<mpfr_get_default_prec()<<"\n"
+                  <<"Intialisation low bound = "<<low<<"\n"
+                  <<"Intialisation high bound = "<<high<<"\n"
+                  <<"Step size = "<<step_size<<"\n"
+                  <<"Central charge = "<<ccharge<<"\n"
+                  <<"Temperature = "<<beta<<"\n"
+                  <<"Gaussian temperature = "<<betaReg<<"\n"
+                  <<"Time steps = "<<maxTime<<"\n"
+                  <<"Number of Walkers = "<<numWalkers<<"\n"
+                  <<"Dimensions = "<<dim<<"\n";
+
     std::ofstream outputFile;
-    outputFile.open(argv[2]);
-    outputFile<<"step_size = "<<step_size<<"\n data = [";
+    outputFile.open(dir + "/data.txt");
+    // outputFile<<"step_size = "<<step_size<<"\n data = [";
 
     typedef boost::multi_array<mpf_class, 2> array_type; // 2 here is the depth.
     boost::array<array_type::index, 2> shape = {{ numWalkers, dim }}; // 3 here seems to do nothing as long as it is greater than depth. 
@@ -160,7 +197,7 @@ int main(int argc, char **argv){
             prev[i][j] = (high - low)*rand.get_f() + low;
         }
     }
-
+    int ratioCount = 0;
     // Evolve the walks
     typedef boost::multi_array<mpf_class, 1> step_type; // 1 here is the depth.
     boost::array<step_type::index, 1> stepShape = {{ dim }};
@@ -169,15 +206,16 @@ int main(int argc, char **argv){
         for(int i = 0; i < numWalkers; i++){
             for(int d = 0; d < dim; d++){
                 // nextStep[d] = abs(prev[i][d] + (2*step_size)*rand.get_f() - step_size);
-                nextStep[d] = prev[i][d] + (2*step_size)*rand.get_f() - step_size;
+                nextStep[d] = abs(prev[i][d] + (2*step_size)*rand.get_f() - step_size);
             }
             // mpf_class ratioPotential = cardy(ccharge, beta, nextStep)/cardy(ccharge, beta, prev[i]);
-            mpf_class ratioPotential = wigner(nextStep)/wigner(prev[i]);
+            mpf_class ratioPotential = cardy(ccharge, beta, betaReg, nextStep)/cardy(ccharge, beta, betaReg, prev[i]);
             mpf_class decisionToss = rand.get_f();
 
-            // if(i == 0){
-            if (i == 0 && time % (maxTime/500) == 0){
-                std::cout<<"ratioPotential at time = "<<time<<" is = "<<ratioPotential<<std::endl;
+            if(i == 0){
+                if(ratioPotential > 0.5){
+                    ratioCount += 1;
+                }
             }
 
             if (decisionToss > ratioPotential){
@@ -187,21 +225,23 @@ int main(int argc, char **argv){
                 prev[i] = nextStep;
             }
         }
-        outputFile<<"[";
+        // outputFile<<"[";
         for(int id = 0; id < numWalkers; id++){
-            outputFile<<"[";
+            // outputFile<<"[";
             for(int d = 0; d < dim; d++){
-                outputFile<<prev[id][d]<<",";
+                outputFile<<prev[id][d]<<"\n";
             }
-            outputFile.seekp(-1, std::ios_base::cur);
-            outputFile<<"],";
+            // outputFile.seekp(-1, std::ios_base::cur);
+            // outputFile<<"],";
         }
-        outputFile.seekp(-1, std::ios_base::cur);
-        outputFile<<"],";
+        // outputFile.seekp(-1, std::ios_base::cur);
+        // outputFile<<"],";
     }
-    outputFile.seekp(-1, std::ios_base::cur);
-    outputFile<<"]";
-
+    // outputFile.seekp(-1, std::ios_base::cur);
+    // outputFile<<"]";
+    
+    std::cout<<"Number of steps with equired acceptance ratio greater than 0.5 is = "<<ratioCount<<std::endl;
+    outputFile.close();
     std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
     std::cout << "Time elapsed = " << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() << "[µs]" << std::endl;
     return 0;
