@@ -8,6 +8,8 @@
 #include<mpfr.h>
 #include<chrono>
 #include"boost/multi_array.hpp"
+#include<string>
+#include<filesystem>
 
 
 #define PREC 500
