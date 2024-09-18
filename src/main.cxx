@@ -38,12 +38,12 @@ mpf_class expV(float ccharge, float beta, boost::multi_array<mpf_class, 1> evals
     
     // This implements Z = sum(exp(lambda beta)) and Zt = sum(exp(lambda beta,))
     mpfr_t Z;
-    mpfr_init_set_str(Z, "1", 10, MPFR_RNDN); // Initialise Z to 0 in base 10
+    mpfr_init_set_str(Z, "1", 10, MPFR_RNDN); // Initialise Z to 1 in base 10
     mpfr_t temp;
     mpfr_init(temp);
 
     mpfr_t Zt;
-    mpfr_init_set_str(Zt, "1", 10, MPFR_RNDN); // Initialise Z to 0 in base 10
+    mpfr_init_set_str(Zt, "1", 10, MPFR_RNDN); // Initialise Zt to 1 in base 10
     mpfr_t tempt;
     mpfr_init(tempt);
 
@@ -78,6 +78,16 @@ mpf_class expV(float ccharge, float beta, boost::multi_array<mpf_class, 1> evals
     mpf_t returnValue;
     mpf_init(returnValue);
     mpfr_get_f(returnValue, Z, MPFR_RNDN); // Need to change to potential
+    
+    // TODO - Is there a better way to achieve the following? For some reason
+    // mpfr_clears() does not work and gives an error of undefined function
+    mpfr_clear(ccharger);
+    mpfr_clear(betar);
+    mpfr_clear(betapr);
+    mpfr_clear(zero);
+    mpfr_clear(Z);
+    mpfr_clear(Zt);
+    mpfr_clear(potential);
     return mpf_class(returnValue);
 }
 
@@ -132,6 +142,9 @@ int main(int argc, char **argv){
     std::cout<<"Precision is: "<<mpfr_get_default_prec()<<std::endl;
     gmp_randclass rand (gmp_randinit_default);
 
+    std::string dir = argv[2];
+    std::filesystem::create_directory(dir);
+
     mpf_class low, high, step_size;
     low = -1;
     high = 1;
@@ -143,10 +156,24 @@ int main(int argc, char **argv){
     // Create a 3D array that is maxTime x numWalkers x dim
     int maxTime = 10;
     int numWalkers = 10;
-    int dim = 3;
+    int dim = 100;
+
+    std::ofstream parametersFile;
+    parametersFile.open(dir + "/parameters.txt");
+
+    parametersFile<<"Precision = "<<mpfr_get_default_prec()<<"\n";
+    parametersFile<<"Intialisation low bound = "<<low<<"\n";
+    parametersFile<<"Intialisation high bound = "<<high<<"\n";
+    parametersFile<<"Step size = "<<step_size<<"\n";
+    parametersFile<<"Central charge = "<<ccharge<<"\n";
+    parametersFile<<"Temperature = "<<beta<<"\n";
+    parametersFile<<"Gaussian temperature = "<<betaReg<<"\n";
+    parametersFile<<"Time steps = "<<maxTime<<"\n";
+    parametersFile<<"Number of Walkers = "<<numWalkers<<"\n";
+    parametersFile<<"Dimensions = "<<dim<<"\n";
 
     std::ofstream outputFile;
-    outputFile.open(argv[2]);
+    outputFile.open(dir + "/data.txt");
     // outputFile<<"step_size = "<<step_size<<"\n data = [";
 
     typedef boost::multi_array<mpf_class, 2> array_type; // 2 here is the depth.
@@ -202,6 +229,7 @@ int main(int argc, char **argv){
     // outputFile.seekp(-1, std::ios_base::cur);
     // outputFile<<"]";
 
+    outputFile.close();
     std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
     std::cout << "Time elapsed = " << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() << "[µs]" << std::endl;
     return 0;
