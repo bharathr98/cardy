@@ -70,7 +70,7 @@ mpf_class expV(float ccharge, float beta, boost::multi_array<mpf_class, 1> evals
     // mpfr_clears(temp,tempt);
     
 
-    // This implements exp(Z - Zt)
+    // This implements exp((Z - Zt)**2)
     mpfr_t potential;
     mpfr_init(potential);
     mpfr_set(potential, Z, MPFR_RNDN);
@@ -164,23 +164,23 @@ int main(int argc, char **argv){
     float betaReg = 0.0001;
 
     // Create a 3D array that is maxTime x numWalkers x dim
-    int maxTime = 10;
+    int maxTime = 700'000;
     int numWalkers = 10;
     int dim = 100;
 
     std::ofstream parametersFile;
     parametersFile.open(dir + "/parameters.txt");
 
-    parametersFile<<"Precision = "<<mpfr_get_default_prec()<<"\n";
-    parametersFile<<"Intialisation low bound = "<<low<<"\n";
-    parametersFile<<"Intialisation high bound = "<<high<<"\n";
-    parametersFile<<"Step size = "<<step_size<<"\n";
-    parametersFile<<"Central charge = "<<ccharge<<"\n";
-    parametersFile<<"Temperature = "<<beta<<"\n";
-    parametersFile<<"Gaussian temperature = "<<betaReg<<"\n";
-    parametersFile<<"Time steps = "<<maxTime<<"\n";
-    parametersFile<<"Number of Walkers = "<<numWalkers<<"\n";
-    parametersFile<<"Dimensions = "<<dim<<"\n";
+    parametersFile<<"Precision = "<<mpfr_get_default_prec()<<"\n"
+                  <<"Intialisation low bound = "<<low<<"\n"
+                  <<"Intialisation high bound = "<<high<<"\n"
+                  <<"Step size = "<<step_size<<"\n"
+                  <<"Central charge = "<<ccharge<<"\n"
+                  <<"Temperature = "<<beta<<"\n"
+                  <<"Gaussian temperature = "<<betaReg<<"\n"
+                  <<"Time steps = "<<maxTime<<"\n"
+                  <<"Number of Walkers = "<<numWalkers<<"\n"
+                  <<"Dimensions = "<<dim<<"\n";
 
     std::ofstream outputFile;
     outputFile.open(dir + "/data.txt");
@@ -197,7 +197,7 @@ int main(int argc, char **argv){
             prev[i][j] = (high - low)*rand.get_f() + low;
         }
     }
-
+    int ratioCount = 0;
     // Evolve the walks
     typedef boost::multi_array<mpf_class, 1> step_type; // 1 here is the depth.
     boost::array<step_type::index, 1> stepShape = {{ dim }};
@@ -213,8 +213,9 @@ int main(int argc, char **argv){
             mpf_class decisionToss = rand.get_f();
 
             if(i == 0){
-            // if (i == 0 && time % (maxTime/500) == 0){
-                std::cout<<"ratioPotential at time = "<<time<<" is = "<<ratioPotential<<std::endl;
+                if(ratioPotential > 0.5){
+                    ratioCount += 1;
+                }
             }
 
             if (decisionToss > ratioPotential){
@@ -238,7 +239,8 @@ int main(int argc, char **argv){
     }
     // outputFile.seekp(-1, std::ios_base::cur);
     // outputFile<<"]";
-
+    
+    std::cout<<"Number of steps with equired acceptance ratio greater than 0.5 is = "<<ratioCount<<std::endl;
     outputFile.close();
     std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
     std::cout << "Time elapsed = " << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() << "[µs]" << std::endl;
