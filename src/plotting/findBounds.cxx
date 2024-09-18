@@ -13,7 +13,7 @@ int main(int argc, char **argv){
     if (file.is_open()) {
         while (getline(file, line)) {
             leftBound = std::min(stof(line), leftBound);
-            rightBound = std::max(stof(line), leftBound);
+            rightBound = std::max(stof(line), rightBound);
         }
         file.close();
     }
