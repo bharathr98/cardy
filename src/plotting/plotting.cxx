@@ -41,7 +41,7 @@ int main(int argc, char **argv){
     outputFile.open(argv[5]);
 
     for(int i = 0; i < bins; i++){
-        outputFile<<i<<"\t"<<counts[i]<<"\n";
+        outputFile<<(leftBound + i*resolution)<<"\t"<<counts[i]<<"\n";
     }
 
     return 0;
