@@ -82,7 +82,7 @@ mpf_class expV(float ccharge, float beta, boost::multi_array<mpf_class, 1> evals
 
     mpf_t returnValue;
     mpf_init(returnValue);
-    mpfr_get_f(returnValue, Z, MPFR_RNDN); // Need to change to potential
+    mpfr_get_f(returnValue, potential, MPFR_RNDN);
     
     // TODO - Is there a better way to achieve the following? For some reason
     // mpfr_clears() does not work and gives an error of undefined function
