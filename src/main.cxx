@@ -50,7 +50,7 @@ mpf_class expV(float ccharge, float beta, boost::multi_array<mpf_class, 1> evals
     mpfr_init(tempt);
 
     mpfr_t dim; // TODO - CHECK that N appears in front of Z-Zt
-    mpfr_init_set_str(dim, "0", 10, MPFR_RNDN);    
+    mpfr_init_set_str(dim, "100", 10, MPFR_RNDN);    
 
     for (auto x: evals){
         mpfr_set_f(temp, x.get_mpf_t(), MPFR_RNDN);
@@ -68,6 +68,17 @@ mpf_class expV(float ccharge, float beta, boost::multi_array<mpf_class, 1> evals
     // mpfr_printf ("Z is %.60Rf\n", Z);
     // mpfr_printf ("Zt is %.60Rf\n", Zt);
     // mpfr_clears(temp,tempt);
+
+    mpfr_t vac;
+    mpfr_init(vac);
+    mpfr_set_flt(vac, ccharge*beta/(12), MPFR_RNDN);
+    mpfr_t vacCrossed;
+    mpfr_init(vacCrossed);
+    mpfr_set_flt(vacCrossed, ccharge/(12) * 4*M_PI*M_PI/beta, MPFR_RNDN);
+
+    mpfr_mul(Z, Z, vac, MPFR_RNDN);
+    mpfr_mul(Zt, Zt, vacCrossed, MPFR_RNDN);
+    
     
 
     // This implements exp((Z - Zt)**2)
@@ -75,8 +86,9 @@ mpf_class expV(float ccharge, float beta, boost::multi_array<mpf_class, 1> evals
     mpfr_init(potential);
     mpfr_set(potential, Z, MPFR_RNDN);
     mpfr_sub(potential, potential, Zt, MPFR_RNDN);
-    mpfr_mul(potential, potential, potential, MPFR_RNDN);
-    mpfr_exp(potential, potential, MPFR_RNDN);
+    mpfr_add(potential, potential, dim, MPFR_RNDN); // Z - Zt + N
+    mpfr_mul(potential, potential, potential, MPFR_RNDN); // (Z - Zt + N)**2
+    mpfr_exp(potential, potential, MPFR_RNDN); // exp((Z - Zt + N)**2) 
     // mpfr_printf ("potential is %.60Rf\n", potential);
 
 
@@ -128,7 +140,7 @@ mpf_class wigner(float betaReg, boost::multi_array<mpf_class, 1> evals){
 }
 
 mpf_class cardy(float ccharge, float beta, float betaReg, boost::multi_array<mpf_class, 1> evals){
-    return vanderMonde(evals) * expV(ccharge, beta, evals) * gaussian(betaReg, evals);
+    return vanderMonde(evals) * expV(ccharge, beta, evals);
 }
 
 unsigned long long int read_urandom()
@@ -154,13 +166,14 @@ int main(int argc, char **argv){
     std::string dir = argv[2];
     std::filesystem::create_directory(dir);
 
-    mpf_class low, high, step_size;
-    low = 50;
-    high = 100;
+    mpf_class low, high, step_size, boundary;
+    low = 200;
+    high = 300;
     step_size = argv[1];
+    boundary = 500;
 
-    float ccharge = 1.5;
-    float beta = 0.5;
+    float ccharge = 10;
+    float beta = 78.9568;
     float betaReg = 0.0001;
 
     // Create a 3D array that is maxTime x numWalkers x dim
@@ -207,16 +220,13 @@ int main(int argc, char **argv){
             for(int d = 0; d < dim; d++){
                 // nextStep[d] = abs(prev[i][d] + (2*step_size)*rand.get_f() - step_size);
                 nextStep[d] = abs(prev[i][d] + (2*step_size)*rand.get_f() - step_size);
+                if (nextStep[d] > boundary){
+                    nextStep[d] = 2*boundary - nextStep[d];
+                }
             }
             // mpf_class ratioPotential = cardy(ccharge, beta, nextStep)/cardy(ccharge, beta, prev[i]);
             mpf_class ratioPotential = cardy(ccharge, beta, betaReg, nextStep)/cardy(ccharge, beta, betaReg, prev[i]);
             mpf_class decisionToss = rand.get_f();
-
-            if(i == 0){
-                if(ratioPotential > 0.5){
-                    ratioCount += 1;
-                }
-            }
 
             if (decisionToss > ratioPotential){
                     continue;
@@ -225,22 +235,17 @@ int main(int argc, char **argv){
                 prev[i] = nextStep;
             }
         }
-        // outputFile<<"[";
+
         for(int id = 0; id < numWalkers; id++){
-            // outputFile<<"[";
             for(int d = 0; d < dim; d++){
                 outputFile<<prev[id][d]<<"\n";
             }
-            // outputFile.seekp(-1, std::ios_base::cur);
-            // outputFile<<"],";
         }
-        // outputFile.seekp(-1, std::ios_base::cur);
-        // outputFile<<"],";
+        if (time % 500 == 0){
+            std::cout<<time<<std::endl;
+        }
     }
-    // outputFile.seekp(-1, std::ios_base::cur);
-    // outputFile<<"]";
     
-    std::cout<<"Number of steps with equired acceptance ratio greater than 0.5 is = "<<ratioCount<<std::endl;
     outputFile.close();
     std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
     std::cout << "Time elapsed = " << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() << "[µs]" << std::endl;
