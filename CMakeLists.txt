@@ -41,13 +41,16 @@ endif()
 
 find_package(Parquet REQUIRED)
 if(Parquet_FOUND AND Parquet_INCLUDE_DIR)
-    include_directories(${Arrow_INCLUDE_DIR})
+    include_directories(${Parquet_INCLUDE_DIR})
 endif()
 
 add_executable(cardy)
 target_sources(cardy
                 PRIVATE
-                src/main.cxx)
+                src/main.cxx
+                src/utils/read_urandom.cpp
+                src/utils/parquet_writer.cpp
+                src/potentials/potentials.cpp)
 target_link_libraries(cardy 
                         PRIVATE
                         ${GMP_LIBRARIES}
