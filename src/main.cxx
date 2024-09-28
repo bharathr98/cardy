@@ -10,6 +10,9 @@
 #include"boost/multi_array.hpp"
 #include<string>
 #include<filesystem>
+#include <arrow/api.h>
+#include <arrow/io/api.h>
+#include <parquet/arrow/writer.h>
 
 
 #define PREC 500
@@ -157,6 +160,51 @@ unsigned long long int read_urandom()
 	return u.value;
 }
 
+void writeBatchToParquet(const std::vector<std::vector<double>>& batchData, const std::string& filename) {
+    // Create Arrow schema with 1000 columns of double type
+    std::vector<std::shared_ptr<arrow::Field>> fields;
+    int columnNumber = batchData[0].size();
+    for (int i = 0; i < columnNumber; ++i) {
+        fields.push_back(arrow::field("col_" + std::to_string(i), arrow::float64()));
+    }
+    std::shared_ptr<arrow::Schema> schema = arrow::schema(fields);
+
+    // Prepare to write multiple rows to the Parquet file
+    arrow::MemoryPool* pool = arrow::default_memory_pool();
+    std::vector<std::shared_ptr<arrow::Array>> columns(columnNumber); // 1000 columns
+
+    // Initialize builders for each column
+    std::vector<std::unique_ptr<arrow::DoubleBuilder>> builders(columnNumber);
+    for (int i = 0; i < columnNumber; ++i) {
+        builders[i] = std::make_unique<arrow::DoubleBuilder>(pool);
+    }
+
+    // Append the rows of batch data to each column's builder
+    for (const auto& row : batchData) {
+        for (int col = 0; col < columnNumber; ++col) {
+            builders[col]->Append(row[col]);
+        }
+    }
+
+    // Build the Arrow Arrays from the builders
+    for (int i = 0; i < columnNumber; ++i) {
+        builders[i]->Finish(&columns[i]);
+    }
+
+    // Create a table from the Arrow arrays
+    std::shared_ptr<arrow::Table> table = arrow::Table::Make(schema, columns, batchData.size());
+
+    // Open the file output stream for Parquet
+    std::shared_ptr<arrow::io::FileOutputStream> outfile;
+    PARQUET_ASSIGN_OR_THROW(outfile, arrow::io::FileOutputStream::Open(filename));
+
+    // Write the Arrow table as Parquet
+    PARQUET_THROW_NOT_OK(parquet::arrow::WriteTable(*table, pool, outfile, batchData.size()));
+
+    // Close the output stream
+    outfile->Close();
+}
+
 int main(int argc, char **argv){
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
     mpf_set_default_prec(PREC);
@@ -177,9 +225,10 @@ int main(int argc, char **argv){
     float betaReg = 0.0001;
 
     // Create a 3D array that is maxTime x numWalkers x dim
-    int maxTime = 700'000;
+    int maxTime = 1'001;
     int numWalkers = 10;
     int dim = 100;
+    int batchSize = 1000;
 
     std::ofstream parametersFile;
     parametersFile.open(dir + "/parameters.txt");
@@ -198,6 +247,11 @@ int main(int argc, char **argv){
     std::ofstream outputFile;
     outputFile.open(dir + "/data.txt");
     // outputFile<<"step_size = "<<step_size<<"\n data = [";
+    std::string parquetFile = dir + "/data.parquet";
+
+    std::vector<std::vector<double>> batchData(
+    batchSize,
+    std::vector<double>(dim*numWalkers, 0));
 
     typedef boost::multi_array<mpf_class, 2> array_type; // 2 here is the depth.
     boost::array<array_type::index, 2> shape = {{ numWalkers, dim }}; // 3 here seems to do nothing as long as it is greater than depth. 
@@ -234,16 +288,24 @@ int main(int argc, char **argv){
             else{
                 prev[i] = nextStep;
             }
+
+            for(int d = 0; d < dim; d++){
+                batchData[time%batchSize][i + d] = (prev[i][d]).get_d();
+            }
         }
+        if (time % batchSize == 0){
+            writeBatchToParquet(batchData, parquetFile);
+        }
+
 
         for(int id = 0; id < numWalkers; id++){
             for(int d = 0; d < dim; d++){
                 outputFile<<prev[id][d]<<"\n";
             }
         }
-        if (time % 500 == 0){
-            std::cout<<time<<std::endl;
-        }
+        // if (time % 500 == 0){
+        //     std::cout<<time<<std::endl;
+        // }
     }
     
     outputFile.close();
