@@ -3,8 +3,6 @@ cmake_minimum_required(VERSION 3.16)
 project(cardy LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(Arrow_DIR "/opt/ebsofts/Arrow/11.0.0-gfbf-2023a/")
-set(zstd_DIR "/opt/ebsofts/zstd/1.5.5-GCCcore-12.3.0/")
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules")
 message(${CMAKE_CURRENT_SOURCE_DIR})
