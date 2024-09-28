@@ -3,6 +3,11 @@
 #include<gmpxx.h>
 #include<mpfr.h>
 
+struct cardyParams {
+    float ccharge;
+    float beta;
+};
+
 mpf_class vanderMonde(boost::multi_array<mpf_class, 1> evals){
     int len = evals.size();
     mpf_class vm = 1;
@@ -127,6 +132,10 @@ mpf_class wigner(float betaReg, boost::multi_array<mpf_class, 1> evals){
     return vanderMonde(evals) * gaussian(betaReg, evals);
 }
 
-mpf_class cardy(float ccharge, float beta, float betaReg, boost::multi_array<mpf_class, 1> evals){
+mpf_class cardy(float ccharge, float beta, boost::multi_array<mpf_class, 1> evals){
+    return vanderMonde(evals) * expV(ccharge, beta, evals);
+}
+
+mpf_class dampedCardy(float ccharge, float beta, float betaReg, boost::multi_array<mpf_class, 1> evals){
     return vanderMonde(evals) * expV(ccharge, beta, evals);
 }

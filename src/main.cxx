@@ -1,15 +1,4 @@
-#include<iostream>
-#include<vector>
-#include<memory>
-#include<gmp.h>
-#include<gmpxx.h>
-#include<mpfr.h>
-#include<chrono>
-#include"boost/multi_array.hpp"
-#include<string>
-#include<filesystem>
-#include"utils/utils.hpp"
-#include"potentials/potentials.hpp"
+#include "main.hpp"
 
 #define PREC 500
 
@@ -87,7 +76,7 @@ int main(int argc, char **argv){
                 }
             }
             // mpf_class ratioPotential = cardy(ccharge, beta, nextStep)/cardy(ccharge, beta, prev[i]);
-            mpf_class ratioPotential = cardy(ccharge, beta, betaReg, nextStep)/cardy(ccharge, beta, betaReg, prev[i]);
+            mpf_class ratioPotential = cardy(ccharge, beta, nextStep)/cardy(ccharge, beta, prev[i]);
             mpf_class decisionToss = rand.get_f();
 
             if (decisionToss > ratioPotential){
