@@ -70,4 +70,18 @@ target_sources(findBounds
                 PRIVATE
                 src/plotting/findBounds.cxx)
 
+add_executable(bench)
+target_sources(bench
+                PRIVATE
+                bench/urandom.cpp
+                src/utils/read_urandom.cpp)
+target_link_libraries(bench 
+                        PRIVATE
+                        ${GMP_LIBRARIES}
+                        ${GMPXX_LIBRARIES}
+                        ${Arrow_LIBRARIES}
+                        ${Parquet_LIBRARIES}
+                        Arrow::arrow_shared
+                        Parquet::parquet_shared)
+
 install(TARGETS cardy plotting findBounds RUNTIME)

@@ -18,6 +18,7 @@ int main(int argc, char **argv){
     mpf_set_default_prec(PREC);
     mpfr_set_default_prec(PREC);
     gmp_randclass rand (gmp_randinit_default);
+    rand.seed(read_urandom());
 
     std::string dir = argv[2];
     std::filesystem::create_directory(dir);
@@ -68,7 +69,6 @@ int main(int argc, char **argv){
     // Randomly initialise the first time step
     for(int i = 0; i < numWalkers; i++){
         for(int j = 0; j < dim; j++){
-            rand.seed(read_urandom());
             prev[i][j] = (high - low)*rand.get_f() + low;
         }
     }
