@@ -1,10 +1,11 @@
 #include "utils.hpp"
+#include<gmpxx.h>
 
-unsigned long long int read_urandom()
+uint64_t read_urandom()
 {
 	union {
-		unsigned long long int value;
-		char cs[sizeof(unsigned long long int)];
+		uint64_t value;
+		char cs[sizeof(uint64_t)];
 	} u;
 
 	std::ifstream rfin("/dev/urandom");

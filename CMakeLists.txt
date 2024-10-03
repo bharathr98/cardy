@@ -48,7 +48,8 @@ target_sources(cardy
                 src/main.cxx
                 src/utils/read_urandom.cpp
                 src/utils/parquet_writer.cpp
-                src/potentials/potentials.cpp)
+                src/potentials/potentials.cpp
+                src/walker.cpp)
 target_link_libraries(cardy 
                         PRIVATE
                         ${GMP_LIBRARIES}

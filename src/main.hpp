@@ -10,3 +10,4 @@
 #include<filesystem>
 #include"utils/utils.hpp"
 #include"potentials/potentials.hpp"
+#include"walker.hpp"
