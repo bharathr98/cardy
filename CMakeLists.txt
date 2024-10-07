@@ -49,7 +49,8 @@ target_sources(cardy
                 src/utils/read_urandom.cpp
                 src/utils/parquet_writer.cpp
                 src/potentials/potentials.cpp
-                src/walker.cpp)
+                src/walker.cpp
+                src/utils/logging.cpp)
 target_link_libraries(cardy 
                         PRIVATE
                         ${GMP_LIBRARIES}
@@ -75,7 +76,8 @@ add_executable(bench)
 target_sources(bench
                 PRIVATE
                 bench/urandom.cpp
-                src/utils/read_urandom.cpp)
+                src/utils/read_urandom.cpp
+                src/utils/logging.cpp)
 target_link_libraries(bench 
                         PRIVATE
                         ${GMP_LIBRARIES}
