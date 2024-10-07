@@ -3,6 +3,7 @@
 
 uint64_t read_urandom()
 {
+	log("Read random called");
 	union {
 		uint64_t value;
 		char cs[sizeof(uint64_t)];

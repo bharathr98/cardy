@@ -8,7 +8,7 @@ struct cardyParams {
     float beta;
 };
 
-mpf_class vanderMonde(boost::multi_array<mpf_class, 1> evals){
+mpf_class vanderMonde(boost::multi_array<mpf_class, 1>& evals){
     int len = evals.size();
     mpf_class vm = 1;
     for (int i = 0; i < len; i++){
@@ -20,7 +20,7 @@ mpf_class vanderMonde(boost::multi_array<mpf_class, 1> evals){
     return vm;
 }
 
-mpf_class expV(float ccharge, float beta, boost::multi_array<mpf_class, 1> evals){
+mpf_class expV(float ccharge, float beta, boost::multi_array<mpf_class, 1>& evals){
     mpfr_t ccharger, betar, betapr, zero;
     mpfr_init(ccharger);
     mpfr_set_flt(ccharger, ccharge, MPFR_RNDN);
@@ -132,7 +132,7 @@ mpf_class wigner(float betaReg, boost::multi_array<mpf_class, 1> evals){
     return vanderMonde(evals) * gaussian(betaReg, evals);
 }
 
-mpf_class cardy(float ccharge, float beta, boost::multi_array<mpf_class, 1> evals){
+mpf_class cardy(float ccharge, float beta, boost::multi_array<mpf_class, 1>& evals){
     return vanderMonde(evals) * expV(ccharge, beta, evals);
 }
 
