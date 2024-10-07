@@ -4,7 +4,7 @@
 
 simulationParams thisSimulation = {
     .dim = 100,
-    .maxTime = 1000,
+    .maxTime = 700000,
     .numWalkers = 10,
     
     .low = 200,
@@ -37,14 +37,18 @@ int main(int argc, char **argv){
 
     int ratioCount = 0;
 
-    for(int id = 0; id < thisSimulation.numWalkers; id++){
-        randomWalker walker(thisSimulation, id, read_urandom());
-        walker.writeData(batchData, 0);
-        for(int t = 1; t < thisSimulation.maxTime; t++){
-            walker.cardyEvolve(thisSimulation);
-            walker.writeData(batchData, t);
-        }
+    #pragma omp parallel
+    {
+        #pragma omp for
+        for(int id = 0; id < thisSimulation.numWalkers; id++){
+            randomWalker walker(thisSimulation, id, read_urandom());
+            walker.writeData(batchData, 0);
+            for(int t = 1; t < thisSimulation.maxTime; t++){
+                walker.cardyEvolve(thisSimulation);
+                walker.writeData(batchData, t);
+            }
 
+        }
     }
     
     writeBatchToParquet(batchData, parquetFile);

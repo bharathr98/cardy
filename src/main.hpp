@@ -4,6 +4,7 @@
 #include<gmp.h>
 #include<gmpxx.h>
 #include<mpfr.h>
+#include<omp.h>
 #include<chrono>
 #include"boost/multi_array.hpp"
 #include<string>

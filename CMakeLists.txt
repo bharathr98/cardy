@@ -42,6 +42,8 @@ if(Parquet_FOUND AND Parquet_INCLUDE_DIR)
     include_directories(${Parquet_INCLUDE_DIR})
 endif()
 
+find_package(OpenMP REQUIRED)
+
 add_executable(cardy)
 target_sources(cardy
                 PRIVATE
@@ -60,7 +62,8 @@ target_link_libraries(cardy
                         ${Arrow_LIBRARIES}
                         ${Parquet_LIBRARIES}
                         Arrow::arrow_shared
-                        Parquet::parquet_shared)
+                        Parquet::parquet_shared
+                        OpenMP::OpenMP_CXX)
 
 add_executable(plotting)
 target_sources(plotting
