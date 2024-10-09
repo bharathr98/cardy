@@ -20,7 +20,7 @@ mpf_class vanderMonde(boost::multi_array<mpf_class, 1>& evals){
     return vm;
 }
 
-mpf_class expV(float ccharge, float beta, boost::multi_array<mpf_class, 1>& evals){
+mpf_class expV(float ccharge, float beta, int dim, boost::multi_array<mpf_class, 1>& evals){
     mpfr_t ccharger, betar, betapr, zero;
     mpfr_init(ccharger);
     mpfr_set_flt(ccharger, ccharge, MPFR_RNDN);
@@ -42,8 +42,8 @@ mpf_class expV(float ccharge, float beta, boost::multi_array<mpf_class, 1>& eval
     mpfr_t tempt;
     mpfr_init(tempt);
 
-    mpfr_t dim; // TODO - CHECK that N appears in front of Z-Zt
-    mpfr_init_set_str(dim, "100", 10, MPFR_RNDN);    
+    mpfr_t dimN; // TODO - CHECK that N appears in front of Z-Zt
+    mpfr_init_set_ui(dimN, dim, MPFR_RNDN);    
 
     for (auto x: evals){
         mpfr_set_f(temp, x.get_mpf_t(), MPFR_RNDN);
@@ -75,13 +75,15 @@ mpf_class expV(float ccharge, float beta, boost::multi_array<mpf_class, 1>& eval
     
 
     // This implements exp((Z - Zt)**2)
-    mpfr_t potential;
+    mpfr_t potential, pdf;
     mpfr_init(potential);
+    mpfr_init_set_str(pdf, "0", 10, MPFR_RNDN);
     mpfr_set(potential, Z, MPFR_RNDN);
     mpfr_sub(potential, potential, Zt, MPFR_RNDN);
-    mpfr_add(potential, potential, dim, MPFR_RNDN); // Z - Zt + N
+    mpfr_add(potential, potential, dimN, MPFR_RNDN); // Z - Zt + N
     mpfr_mul(potential, potential, potential, MPFR_RNDN); // (Z - Zt + N)**2
-    mpfr_exp(potential, potential, MPFR_RNDN); // exp((Z - Zt + N)**2) 
+    mpfr_sub(pdf, pdf, potential, MPFR_RNDN); // sets pdf = - (Z - Zt + N)**2;
+    mpfr_exp(potential, potential, MPFR_RNDN); // exp(- (Z - Zt + N)**2) 
     // mpfr_printf ("potential is %.60Rf\n", potential);
 
 
@@ -98,6 +100,8 @@ mpf_class expV(float ccharge, float beta, boost::multi_array<mpf_class, 1>& eval
     mpfr_clear(Z);
     mpfr_clear(Zt);
     mpfr_clear(potential);
+    mpfr_clear(dimN);
+    mpfr_clear(pdf);
     return mpf_class(returnValue);
 }
 
@@ -132,10 +136,10 @@ mpf_class wigner(float betaReg, boost::multi_array<mpf_class, 1> evals){
     return vanderMonde(evals) * gaussian(betaReg, evals);
 }
 
-mpf_class cardy(float ccharge, float beta, boost::multi_array<mpf_class, 1>& evals){
-    return vanderMonde(evals) * expV(ccharge, beta, evals);
+mpf_class cardy(float ccharge, float beta, int dim, boost::multi_array<mpf_class, 1>& evals){
+    return vanderMonde(evals) * expV(ccharge, beta, dim, evals);
 }
 
 mpf_class dampedCardy(float ccharge, float beta, float betaReg, boost::multi_array<mpf_class, 1> evals){
-    return vanderMonde(evals) * expV(ccharge, beta, evals);
+    return vanderMonde(evals) * expV(ccharge, beta, 100, evals); // 100 is a placeholder
 }
