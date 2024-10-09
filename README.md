@@ -4,7 +4,7 @@ This repository contains parallelised MCMC code in C++ to sample from very high 
 
 On a 64 core machine, this code is snappy enough to produce 5.4 billion single-dimensional samples per hour! [^1]
 
-## Instructions to run on Baobab cluster at UniGE
+## Instructions to run on a cluster
 
 The first step is to set the simulation parameters. Currently this is handled inside the `main.cpp` file by changing the values of `thisSimulation`. 
 
