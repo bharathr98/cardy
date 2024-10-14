@@ -4,16 +4,17 @@
 
 simulationParams thisSimulation = {
     .dim = 100,
-    .maxTime = 700000,
+    .maxTime = 800000,
     .numWalkers = 10,
     
-    .low = 200,
-    .high = 300,
-    .step_size = 0.1,
+    .low = 100,
+    .high = 150,
+    .step_size = 0.02,
     .boundary = 500,
 
     .ccharge = 10,
     .beta = 78.9568,
+    //.beta = 56.29,
 };
 
 int main(int argc, char **argv){
