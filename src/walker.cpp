@@ -1,6 +1,4 @@
 #include"boost/multi_array.hpp"
-#include<gmp.h>
-#include<gmpxx.h>
 #include<iostream>
 #include"utils/utils.hpp"
 #include"potentials/potentials.hpp"
@@ -33,12 +31,12 @@ void randomWalker::cardyEvolve(simulationParams& _simulationParams){
 //                    nextStep[d] = 2*_simulationParams.boundary - nextStep[d];
 //                }
             }
-            mpf_class denominator = Cardy_int_gk(_simulationParams.ccharge, 6.29, _simulationParams.beta, dim, currentStep);
+            mpf_class denominator = Cardy_int_GK(_simulationParams.ccharge, _simulationParams.gk_order, dim, _simulationParams.boundary, currentStep);
             if (denominator == 0) {
                 std::cerr << "Error: cardy returned zero for currentStep, division by zero!" << std::endl;
                 return; // or handle it in some other way
             }
-            mpf_class ratioPotential = Cardy_int_gk(_simulationParams.ccharge, 6.29,_simulationParams.beta, dim, nextStep) / denominator;
+            mpf_class ratioPotential = Cardy_int_GK(_simulationParams.ccharge, _simulationParams.gk_order, dim, _simulationParams.boundary, nextStep) / denominator;
             // mpf_class ratioPotential = cardy(_simulationParams.ccharge, _simulationParams.beta, nextStep)/cardy(_simulationParams.ccharge, _simulationParams.beta, currentStep);
             mpf_class decisionToss = rand.get_f();
 

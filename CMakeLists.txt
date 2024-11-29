@@ -26,7 +26,9 @@ if(MPFR_FOUND AND MPFR_INCLUDE_DIR)
     include_directories(${MPFR_INCLUDE_DIR})
 endif()
 
-find_package(Boost REQUIRED)
+find_package(Boost 
+                REQUIRED COMPONENTS
+                program_options)
 message(STATUS "Boost version: ${Boost_VERSION}")
 if(Boost_FOUND AND Boost_INCLUDE_DIR)
     include_directories(${Boost_INCLUDE_DIR})
@@ -58,9 +60,10 @@ target_link_libraries(cardy
                         ${GMP_LIBRARIES}
                         ${GMPXX_LIBRARIES}
                         ${MPFR_LIBRARIES}
-                        ${Boost_LIBRARIES}
                         ${Arrow_LIBRARIES}
                         ${Parquet_LIBRARIES}
+                        ${Boost_LIBRARIES}
+                        Boost::program_options
                         Arrow::arrow_shared
                         Parquet::parquet_shared
                         OpenMP::OpenMP_CXX)
@@ -90,4 +93,15 @@ target_link_libraries(bench
                         Arrow::arrow_shared
                         Parquet::parquet_shared)
 
-install(TARGETS cardy plotting findBounds RUNTIME)
+add_executable(tests)
+target_sources(tests
+                PRIVATE
+                tests/gk_integrals.cpp
+                src/potentials/potentials.cpp)
+target_link_libraries(tests 
+                        PRIVATE
+                        ${GMP_LIBRARIES}
+                        ${GMPXX_LIBRARIES}
+                        ${MPFR_LIBRARIES})
+
+install(TARGETS cardy plotting findBounds tests RUNTIME)

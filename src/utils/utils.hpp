@@ -16,9 +16,19 @@ void log(std::string message);
 struct simulationParams{
     int dim, maxTime, numWalkers;
 
-    mpf_class low, high, step_size, boundary;
+    mpf_class low, high, step_size;
 
-    float ccharge, beta;
+    float low_f, high_f, step_size_f;
+
+    float boundary, ccharge;
+
+    int gk_order;
+
+    void set_mpf(){
+        low = low_f;
+        high = high_f;
+        step_size = step_size_f;
+    }
 
     void printParameters(std::ofstream& parametersFile){
         parametersFile<<"Precision = "<<mpfr_get_default_prec()<<"\n"
@@ -26,10 +36,11 @@ struct simulationParams{
                   <<"Intialisation high bound = "<<high<<"\n"
                   <<"Step size = "<<step_size<<"\n"
                   <<"Central charge = "<<ccharge<<"\n"
-                  <<"Temperature = "<<beta<<"\n"
                   <<"Time steps = "<<maxTime<<"\n"
                   <<"Number of Walkers = "<<numWalkers<<"\n"
-                  <<"Dimensions = "<<dim<<"\n";
+                  <<"Dimensions = "<<dim<<"\n"
+                  <<"GK Order = "<<gk_order<<"\n"
+                  <<"Wall at = "<<boundary;
     }
 
 };
