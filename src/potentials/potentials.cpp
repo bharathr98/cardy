@@ -124,8 +124,10 @@ mpf_class cardyError(float ccharge, mpfr_t beta, boost::multi_array<mpf_class, 1
     mpfr_t tempt;
     mpfr_init(tempt);  
 
+    #ifdef DEBUG
     mpf_t debug;
     mpf_init(debug);
+    #endif
 
     for (auto x: evals){
         mpfr_set_f(temp, x.get_mpf_t(), MPFR_RNDN);
@@ -180,6 +182,12 @@ mpf_class cardyError(float ccharge, mpfr_t beta, boost::multi_array<mpf_class, 1
     mpfr_clear(vac);
     mpfr_clear(vacCrossed);
     mpf_clear(returnValue);
+    mpfr_clear(temp);
+    mpfr_clear(tempt);
+
+    #ifdef DEBUG
+    mpf_clear(debug);
+    #endif
 
     return returnValueC;
 }
@@ -347,7 +355,15 @@ mpf_class expV_GK(float ccharge, int order, unsigned int dim, boost::multi_array
     mpfr_clear(dimN);
     mpfr_clear(zero);
 
-    return mpf_class(returnValue);
+    mpf_class returnValueC(returnValue);
+    mpf_clear(returnValue);
+
+    #ifdef DEBUG
+    mpf_clear(debug);
+    #endif
+
+    // Return the final result as mpf_class
+    return returnValueC;
 }
 
 mpf_class gaussian(float betaReg, boost::multi_array<mpf_class, 1> evals){
